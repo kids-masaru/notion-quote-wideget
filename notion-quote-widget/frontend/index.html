@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>今日の名言</title>
+  <style>
+    :root {
+      --primary-color: #3a7bd5;
+      --secondary-color: #00d2ff;
+      --text-color: #2c3e50;
+      --background-color: #f5f7fa;
+      --card-background: #ffffff;
+      --shadow-color: rgba(0, 0, 0, 0.1);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+      background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .quote-container {
+      width: 100%;
+      max-width: 500px;
+      background: var(--card-background);
+      border-radius: 15px;
+      box-shadow: 0 10px 20px var(--shadow-color);
+      overflow: hidden;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .quote-container:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 15px 30px var(--shadow-color);
+    }
+
+    .quote-header {
+      background: linear-gradient(to right, var(--primary-color), var(--secondary-color));
+      color: white;
+      padding: 20px;
+      text-align: center;
+      font-weight: bold;
+      font-size: 1.2rem;
+    }
+
+    .quote-body {
+      padding: 30px;
+    }
+
+    .quote-text {
+      font-size: 1.5rem;
+      color: var(--text-color);
+      line-height: 1.6;
+      margin-bottom: 20px;
+      text-align: center;
+      font-weight: 500;
+    }
+
+    .quote-summary {
+      font-size: 1rem;
+      color: #7f8c8d;
+      line-height: 1.6;
+      margin-bottom: 20px;
+      text-align: center;
+      font-style: italic;
+    }
+
+    .quote-category {
+      display: inline-block;
+      background-color: #e0f7fa;
+      color: #0097a7;
+      padding: 5px 10px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      margin-bottom: 15px;
+    }
+
+    .quote-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px 30px;
+      background-color: #f9f9f9;
+      border-top: 1px solid #eee;
+    }
+
+    .last-updated {
+      font-size: 0.8rem;
+      color: #95a5a6;
+    }
+
+    .refresh-button {
+      background: linear-gradient(to right, var(--primary-color), var(--secondary-color));
+      color: white;
+      border: none;
+      padding: 8px 15px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: transform 0.2s ease, opacity 0.2s ease;
+    }
+
+    .refresh-button:hover {
+      transform: scale(1.05);
+    }
+
+    .refresh-button:active {
+      transform: scale(0.95);
+    }
+
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: var(--text-color);
+    }
+
+    .loading-spinner {
+      display: inline-block;
+      width: 40px;
+      height: 40px;
+      border: 4px solid rgba(58, 123, 213, 0.3);
+      border-radius: 50%;
+      border-top-color: var(--primary-color);
+      animation: spin 1s ease-in-out infinite;
+      margin-bottom: 15px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .error-message {
+      color: #e74c3c;
+      text-align: center;
+      padding: 20px;
+    }
+
+    @media (max-width: 600px) {
+      .quote-container {
+        max-width: 100%;
+      }
+      
+      .quote-text {
+        font-size: 1.3rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="quote-container" id="quote-container">
+    <div class="quote-header">今日の名言</div>
+    <div id="quote-content">
+      <div class="loading">
+        <div class="loading-spinner"></div>
+        <p>名言を取得中...</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // APIのURL（Vercelにデプロイ後に更新）
+    const API_URL = 'https://your-vercel-deployment-url.vercel.app/api';
+    
+    // DOM要素
+    const quoteContentElement = document.getElementById('quote-content');
+    
+    // 日付をフォーマットする関数
+    function formatDate(dateString) {
+      const date = new Date(dateString);
+      return date.toLocaleString('ja-JP', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
+    
+    // 名言を取得して表示する関数
+    async function fetchQuote() {
+      // ローディング表示
+      quoteContentElement.innerHTML = `
+        <div class="loading">
+          <div class="loading-spinner"></div>
+          <p>名言を取得中...</p>
+        </div>
+      `;
+      
+      try {
+        // APIからデータを取得
+        const response = await fetch(API_URL);
+        
+        // レスポンスが正常でない場合はエラー
+        if (!response.ok) {
+          throw new Error('APIからのレスポンスが正常ではありません');
+        }
+        
+        // JSONデータを解析
+        const data = await response.json();
+        
+        // 名言を表示
+        quoteContentElement.innerHTML = `
+          <div class="quote-body">
+            ${data.category ? `<div class="quote-category">${data.category}</div>` : ''}
+            <div class="quote-text">${data.quote}</div>
+            ${data.summary ? `<div class="quote-summary">${data.summary}</div>` : ''}
+          </div>
+          <div class="quote-footer">
+            <div class="last-updated">更新: ${formatDate(data.lastUpdated)}</div>
+            <button class="refresh-button" onclick="fetchQuote()">更新</button>
+          </div>
+        `;
+      } catch (error) {
+        // エラー表示
+        quoteContentElement.innerHTML = `
+          <div class="error-message">
+            <p>名言の取得に失敗しました</p>
+            <p>${error.message}</p>
+            <button class="refresh-button" onclick="fetchQuote()" style="margin-top: 15px;">再試行</button>
+          </div>
+        `;
+        console.error('Error fetching quote:', error);
+      }
+    }
+    
+    // ページ読み込み時に名言を取得
+    document.addEventListener('DOMContentLoaded', fetchQuote);
+    
+    // 毎日午前0時に自動更新する
+    function scheduleNextUpdate() {
+      const now = new Date();
+      const tomorrow = new Date(now);
+      tomorrow.setDate(now.getDate() + 1);
+      tomorrow.setHours(0, 0, 0, 0);
+      
+      const timeUntilMidnight = tomorrow - now;
+      setTimeout(() => {
+        fetchQuote();
+        scheduleNextUpdate();
+      }, timeUntilMidnight);
+    }
+    
+    // 自動更新をスケジュール
+    scheduleNextUpdate();
+  </script>
+</body>
+</html>
